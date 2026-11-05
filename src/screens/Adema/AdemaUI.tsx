@@ -1,0 +1,14 @@
+import React from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
+export const colors = { blue:'#2463FF', light:'#EAF0FF', pale:'#F5F8FF', ink:'#1C2B50', muted:'#77839A', white:'#FFFFFF' };
+export const styles = StyleSheet.create({
+ page:{flex:1,backgroundColor:'#FFFFFF'}, content:{width:'100%',maxWidth:440,alignSelf:'center',padding:24,paddingBottom:48},
+ title:{fontSize:27,fontWeight:'800',color:'#1C2B50',marginBottom:8}, subtitle:{fontSize:14,color:'#77839A',lineHeight:21,marginBottom:22},
+ card:{backgroundColor:'#EAF0FF',padding:16,borderRadius:18,marginBottom:12}, row:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+ label:{fontSize:13,fontWeight:'700',color:'#1C2B50',marginBottom:7}, input:{backgroundColor:'#EAF0FF',padding:14,borderRadius:13,color:'#1C2B50',marginBottom:16},
+});
+export function Page({children}:{children:React.ReactNode}) {return <ScrollView style={styles.page} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>}
+export function Header({title,onBack}:{title:string,onBack?:()=>void}) {return <View style={[styles.row,{marginBottom:26}]}><Pressable onPress={onBack} accessibilityRole="button"><Text style={{fontSize:23,color:colors.blue}}>{'\u2039'} Back</Text></Pressable><Text style={{fontSize:16,fontWeight:'700',color:colors.ink}}>{title}</Text><View style={{width:46}}/></View>}
+export function Button({title,onPress,secondary=false}:{title:string,onPress?:()=>void,secondary?:boolean}) {return <Pressable accessibilityRole="button" onPress={onPress} style={{backgroundColor:secondary?'#AFC5FF':colors.blue,paddingVertical:16,borderRadius:25,alignItems:'center',marginTop:10}}><Text style={{color:'white',fontSize:15,fontWeight:'700'}}>{title}</Text></Pressable>}
+export function Input({label,value,onChangeText,placeholder}:{label:string,value:string,onChangeText:(v:string)=>void,placeholder?:string}) {return <View><Text style={styles.label}>{label}</Text><TextInput style={styles.input} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#8798B7"/></View>}
+export function DoctorCard({name,detail,onPress,heart=false}:{name:string,detail:string,onPress?:()=>void,heart?:boolean}) {return <Pressable onPress={onPress} style={[styles.card,{flexDirection:'row',alignItems:'center',gap:12}]}><View style={{width:52,height:52,borderRadius:26,backgroundColor:'white',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:23,color:colors.blue}}>+</Text></View><View style={{flex:1}}><Text style={{fontWeight:'800',color:colors.ink,fontSize:15}}>{name}</Text><Text style={{color:colors.muted,marginTop:5,fontSize:12}}>{detail}</Text></View><Text style={{color:colors.blue,fontSize:20}}>{heart?'\u2665':'\u203a'}</Text></Pressable>}
