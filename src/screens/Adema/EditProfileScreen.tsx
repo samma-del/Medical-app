@@ -1,0 +1,4 @@
+import React,{useState} from 'react';
+import {Text} from 'react-native';
+import {Page,Header,Input,Button,styles,colors} from './AdemaUI';
+export default function EditProfileScreen({onBack}:{onBack?:()=>void}) {const [name,setName]=useState('Skin First User');const [email,setEmail]=useState('user@example.com');const [phone,setPhone]=useState('');const [saved,setSaved]=useState(false);return <Page><Header title="Edit Profile" onBack={onBack}/><Text style={styles.title}>Personal Information</Text><Text style={styles.subtitle}>Update your details for this demo.</Text><Input label="Full Name" value={name} onChangeText={setName}/><Input label="Email" value={email} onChangeText={setEmail}/><Input label="Phone Number" value={phone} onChangeText={setPhone} placeholder="Enter phone number"/><Button title="Save Changes" onPress={()=>setSaved(true)}/>{saved&&<Text style={{color:colors.blue,marginTop:16,textAlign:'center'}}>Changes saved in this preview.</Text>}</Page>}

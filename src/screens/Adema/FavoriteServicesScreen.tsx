@@ -1,0 +1,5 @@
+import React,{useState} from 'react';
+import {Text,Pressable,View} from 'react-native';
+import {Page,Header,colors,styles} from './AdemaUI';
+const services=['Dermatology Consultation','Acne Treatment','Skin Care','Skin Checkup'];
+export default function FavoriteServicesScreen({onBack}:{onBack?:()=>void}) {const [saved,setSaved]=useState(services);return <Page><Header title="Favorite Services" onBack={onBack}/><Text style={styles.title}>Favorite Services</Text><Text style={styles.subtitle}>Tap a heart to save or remove a service.</Text>{services.map(name=><View key={name} style={[styles.card,styles.row]}><View style={{flex:1}}><Text style={{color:colors.ink,fontSize:16,fontWeight:'800'}}>{name}</Text><Text style={{color:colors.muted,marginTop:5}}>Skin First medical care</Text></View><Pressable accessibilityRole="button" onPress={()=>setSaved(v=>v.includes(name)?v.filter(x=>x!==name):[...v,name])}><Text style={{color:colors.blue,fontSize:25}}>{saved.includes(name)?'\u2665':'\u2661'}</Text></Pressable></View>)}</Page>}
