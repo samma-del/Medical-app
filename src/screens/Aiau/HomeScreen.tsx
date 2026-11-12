@@ -11,6 +11,7 @@ import { Page, S, C, Btn } from './ui';
 type Props = {
   onDoctors?: () => void;
   onProfile?: () => void;
+  onDermacare?: () => void;
 };
 
 const services = [
@@ -29,6 +30,7 @@ const doctors = [
 export default function HomeScreen({
   onDoctors,
   onProfile,
+  onDermacare,
 }: Props) {
   return (
     <Page>
@@ -105,10 +107,21 @@ export default function HomeScreen({
         </Pressable>
       ))}
 
-      <Btn
+      
+            <Btn
         title="See All Doctors"
         onPress={onDoctors}
       />
+
+      <Pressable
+        onPress={onDermacare}
+        style={styles.dermacareButton}
+      >
+        <Text style={styles.dermacareButtonText}>
+          Open Dermacare
+        </Text>
+      </Pressable>
+
     </Page>
   );
 }
@@ -198,8 +211,24 @@ const styles = StyleSheet.create({
     color: C.ink,
     marginBottom: 5,
   },
+  
   arrow: {
     color: C.blue,
     fontSize: 28,
+  },
+
+    dermacareButton: {
+    backgroundColor: C.blue,
+    paddingVertical: 16,
+    borderRadius: 17,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+
+  dermacareButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
