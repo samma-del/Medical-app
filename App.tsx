@@ -51,7 +51,7 @@ type Screen =
 export default function App() {
   const [screen, setScreen] = useState<Screen>('splash');
 
-  const [doctor, setDoctor] = useState('Dr. Sarah Wilson');
+  const [doctor, setDoctor] = useState<string>('');
 
   const [previousScreen, setPreviousScreen] =
     useState<Screen>('home');
@@ -114,19 +114,16 @@ export default function App() {
         />
       )}
 
-      {screen === 'doctors' && (
-        <DoctorsScreen
-          onBack={() => go('home')}
-          onDoctor={(name) => {
-            setDoctor(name);
-            go('doctorInfo');
-          }}
-        />
-      )}
-
+      {screen === 'doctorInfo' && (
+  <DoctorInfoScreen
+    doctorName={doctor}
+    onBack={() => go('doctors')}
+    onHome={() => go('home')}
+  />
+)}
       {screen === 'doctorInfo' && (
         <DoctorInfoScreen
-          doctor={doctor}
+          doctorName={doctor}
           onBack={() => go('doctors')}
           onHome={() => go('home')}
         />
