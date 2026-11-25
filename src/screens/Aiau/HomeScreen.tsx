@@ -21,11 +21,7 @@ const services = [
   { icon: '✦', name: 'Treatment' },
 ];
 
-const doctors = [
-  { name: 'Dr. Sarah Wilson', rating: '4.9' },
-  { name: 'Dr. Michael Brown', rating: '4.8' },
-  { name: 'Dr. Emily Davis', rating: '4.9' },
-];
+import { doctors } from '../../data/doctors';
 
 export default function HomeScreen({
   onDoctors,
@@ -83,7 +79,7 @@ export default function HomeScreen({
 
       <Text style={styles.heading}>Top Doctors</Text>
 
-      {doctors.map((doctor) => (
+      {doctors.slice(0, 3).map((doctor) => (
         <Pressable
           key={doctor.name}
           style={styles.doctorCard}
@@ -94,15 +90,32 @@ export default function HomeScreen({
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.doctorName}>
-              {doctor.name}
-            </Text>
+  <Text style={styles.doctorName}>
+    {doctor.name}
+  </Text>
 
-            <Text style={S.small}>
-              Dermatologist | Rating: {doctor.rating}
-            </Text>
-          </View>
+  <Text style={S.small}>
+    {doctor.specialty}
+  </Text>
 
+  <Text style={S.small}>
+    Experience: {doctor.experience} years
+  </Text>
+
+  <Text style={S.small}>
+    Rating: {doctor.rating ?? 'No reviews'}
+  </Text>
+
+  <Text style={S.small}>
+    {doctor.clinic}
+  </Text>
+
+  <Text style={S.small}>
+    {doctor.price !== null
+      ? `${doctor.price.toLocaleString()} ₸`
+      : 'Price on request'}
+  </Text>
+</View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
       ))}
