@@ -1,6 +1,25 @@
 
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+
+import { languageReady } from './src/i18n';
+
+//context
+import { FavoritesProvider } from './src/context/FavoritesContext';
+import { MessagesProvider } from './src/context/MessagesContext';
+
+//data
+import {
+  BookingProvider,
+  useBooking,
+} from './src/context/BookingContext';
+
+import { doctors } from './src/data/doctors';
 
 // Aiau screens
 import SplashScreen from './src/screens/Aiau/SplashScreen';
@@ -27,7 +46,6 @@ import PaymentSuccess from './src/screens/Samal/PaymentSuccess';
 
 // Dermacare navigation
 import DermacareNavigator from './src/components/dermacare/DermacareNavigator';
-
 type Screen =
   | 'splash'
   | 'welcome'
@@ -48,7 +66,10 @@ type Screen =
   | 'paymentSummary'
   | 'paymentSuccess';
 
-export default function App() {
+
+function AppContent() {
+  const { setSelectedDoctor } = useBooking();
+
   const [screen, setScreen] = useState<Screen>('splash');
 
   const [doctor, setDoctor] = useState<string>('');
@@ -63,6 +84,9 @@ export default function App() {
     setPreviousScreen(screen);
     setScreen(next);
   };
+
+  const [dermaStart, setDermaStart] =
+  useState<'Profile' | 'Schedule'>('Profile');
 
   return (
     <View style={styles.app}>
@@ -110,24 +134,41 @@ export default function App() {
         <HomeScreen
           onDoctors={() => go('doctors')}
           onProfile={() => go('adema')}
-          onDermacare={() => go('dermacare')}
+          onDermacare={() => {
+  setDermaStart('Profile');
+  go('dermacare');
+}}
         />
       )}
+       
+      {screen === 'doctors' && (
+  <DoctorsScreen
+    onBack={() => go('home')}
+    onDoctor={(name) => {
+      setDoctor(name);
+      go('doctorInfo');
+    }}
+  />
+)}
 
-      {screen === 'doctorInfo' && (
+     {screen === 'doctorInfo' && (
   <DoctorInfoScreen
     doctorName={doctor}
     onBack={() => go('doctors')}
     onHome={() => go('home')}
+    onBook={() => {
+      const currentDoctor = doctors.find(
+        (item) => item.name === doctor
+      );
+
+      if (!currentDoctor) return;
+
+      setSelectedDoctor(currentDoctor);
+      setDermaStart('Schedule');
+      go('dermacare');
+    }}
   />
 )}
-      {screen === 'doctorInfo' && (
-        <DoctorInfoScreen
-          doctorName={doctor}
-          onBack={() => go('doctors')}
-          onHome={() => go('home')}
-        />
-      )}
 
       {/* ADEMA */}
 
@@ -139,11 +180,12 @@ export default function App() {
 
       {/* DERMACARE */}
 
-      {screen === 'dermacare' && (
-        <DermacareNavigator
-          onExit={() => go('home')}
-        />
-      )}
+{screen === 'dermacare' && (
+  <DermacareNavigator
+    initialRoute={dermaStart}
+    onExit={() => go('home')}
+  />
+)}
 
       {/* SAMAL */}
 
@@ -225,6 +267,67 @@ export default function App() {
     </View>
   );
 }
+
+
+export default function App() {
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    languageReady
+      .then(() => {
+        if (active) setReady(true);
+      })
+      .catch((error) => {
+        console.warn(error);
+        if (active) setFailed(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (failed) {
+    return (
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text>Language initialization error</Text>
+      </View>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <ActivityIndicator
+          size="large"
+          color="#2463FF"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FavoritesProvider>
+      <MessagesProvider>
+        <BookingProvider>
+          <AppContent />
+        </BookingProvider>
+      </MessagesProvider>
+    </FavoritesProvider>
+  );
+}
+
 
 const styles = StyleSheet.create({
   app: {

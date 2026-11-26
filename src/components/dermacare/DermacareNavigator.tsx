@@ -19,19 +19,39 @@ import PaymentMethod from '../../screens/Samal/PaymentMethod';
 import AddCard from '../../screens/Samal/AddCard';
 import PaymentSummary from '../../screens/Samal/PaymentSummary';
 import PaymentSuccess from '../../screens/Samal/PaymentSuccess';
+import {
+  ProfileScreen,
+  PasswordManagerScreen,
+  PrivacyPolicyScreen,
+  LogoutScreen,
+} from './screens/account';
+
+import {
+  HelpFAQScreen,
+  HelpContactScreen,
+} from './screens/help';
+
+import {
+  NotificationScreen,
+  MessageScreen,
+} from './screens/inbox';
 
 const Stack = createNativeStackNavigator();
 
 type Props = {
   onExit: () => void;
+  initialRoute?: 'Profile' | 'Schedule';
 };
 
-export default function DermacareNavigator({ onExit }: Props) {
+export default function DermacareNavigator({
+  onExit,
+  initialRoute = 'Profile',
+}: Props) {
   return (
     <NavigationIndependentTree>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="DoctorProfile"
+          initialRouteName={initialRoute}
           screenOptions={{ headerShown: false }}
         >
           <Stack.Screen
@@ -119,6 +139,49 @@ export default function DermacareNavigator({ onExit }: Props) {
               />
             )}
           </Stack.Screen>
+
+
+           
+<Stack.Screen
+  name="Profile"
+  component={ProfileScreen}
+/>
+
+<Stack.Screen
+  name="PasswordManager"
+  component={PasswordManagerScreen}
+/>
+
+<Stack.Screen
+  name="PrivacyPolicy"
+  component={PrivacyPolicyScreen}
+/>
+
+<Stack.Screen
+  name="HelpFAQ"
+  component={HelpFAQScreen}
+/>
+
+<Stack.Screen
+  name="HelpContact"
+  component={HelpContactScreen}
+/>
+
+<Stack.Screen
+  name="Notification"
+  component={NotificationScreen}
+/>
+
+<Stack.Screen
+  name="Message"
+  component={MessageScreen}
+/>
+
+<Stack.Screen
+  name="Logout"
+  component={LogoutScreen}
+/>
+
         </Stack.Navigator>
       </NavigationContainer>
     </NavigationIndependentTree>

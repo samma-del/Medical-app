@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+
 import {
   Text,
   View,
@@ -10,8 +11,11 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+
 import { Page, S, C, Back } from './ui';
 import { searchDoctors } from '../../data/doctors';
+import { useFavorites } from '../../context/FavoritesContext';
 
 type Props = {
   onBack?: () => void;
@@ -24,25 +28,58 @@ export default function DoctorsScreen({
   onBack,
   onDoctor,
 }: Props) {
+
+  // Подключение переводов
+
+  const { t, i18n } = useTranslation();
+
+  const locale =
+    i18n.resolvedLanguage === 'kk'
+      ? 'kk-KZ'
+      : i18n.resolvedLanguage === 'ru'
+      ? 'ru-KZ'
+      : 'en-US';
+
+  // Поиск и фильтрация
+
   const [query, setQuery] = useState('');
-  const [gender, setGender] = useState<Gender>('all');
+
+  const [gender, setGender] =
+    useState<Gender>('all');
+
+  // Избранные врачи
+
+  const {
+    toggleFavorite,
+    isFavorite,
+  } = useFavorites();
 
   const filteredDoctors = searchDoctors(query).filter(
     (doctor) =>
-      gender === 'all' || doctor.gender === gender
+      gender === 'all' ||
+      doctor.gender === gender
   );
 
   return (
     <Page>
-      <Back title="Doctors" onPress={onBack} />
 
-      <Text style={S.title}>Find your doctor</Text>
+      {/* HEADER */}
 
-      <Text style={S.sub}>
-        Experienced specialists for your skin.
+      <Back
+        title={t('doctors')}
+        onPress={onBack}
+      />
+
+      <Text style={S.title}>
+        {t('findDoctor')}
       </Text>
 
-      {/* Search */}
+      <Text style={S.sub}>
+        {t('doctorDescription')}
+      </Text>
+
+      {/* SEARCH */}
+
       <View style={styles.searchBox}>
         <Ionicons
           name="search-outline"
@@ -51,10 +88,10 @@ export default function DoctorsScreen({
         />
 
         <TextInput
-          placeholder="Search doctor or specialty..."
-          placeholderTextColor="#8798B7"
           value={query}
           onChangeText={setQuery}
+          placeholder={t('searchDoctor')}
+          placeholderTextColor="#8798B7"
           style={styles.searchInput}
         />
 
@@ -69,7 +106,8 @@ export default function DoctorsScreen({
         )}
       </View>
 
-      {/* Gender filter */}
+      {/* FILTERS */}
+
       <View style={styles.filters}>
         {(['all', 'female', 'male'] as const).map(
           (item) => (
@@ -77,8 +115,9 @@ export default function DoctorsScreen({
               key={item}
               onPress={() => setGender(item)}
               style={[
-                styles.filterButton,
-                gender === item && styles.activeFilter,
+                styles.filter,
+                gender === item &&
+                  styles.activeFilter,
               ]}
             >
               <Text
@@ -88,35 +127,36 @@ export default function DoctorsScreen({
                     styles.activeFilterText,
                 ]}
               >
-                {item === 'all'
-                  ? 'All'
-                  : item === 'female'
-                  ? 'Female'
-                  : 'Male'}
+                {t(item)}
               </Text>
             </Pressable>
           )
         )}
       </View>
 
-      <View style={styles.sectionHeader}>
+      {/* SECTION TITLE */}
+
+      <View style={styles.section}>
         <Text style={styles.heading}>
-          Available Doctors
+          {t('availableDoctors')}
         </Text>
 
         <Text style={S.small}>
-          {filteredDoctors.length} doctors
+          {t('doctorCount')}: {filteredDoctors.length}
         </Text>
       </View>
 
-      {/* Doctors */}
+      {/* DOCTOR CARDS */}
+
       {filteredDoctors.map((doctor) => (
-        <Pressable
+        <View
           key={doctor.id}
           style={styles.card}
-          onPress={() => onDoctor?.(doctor.name)}
         >
-          <View style={styles.cardContent}>
+          <View style={styles.cardRow}>
+
+            {/* Doctor photo */}
+
             {doctor.image ? (
               <Image
                 source={{ uri: doctor.image }}
@@ -132,8 +172,10 @@ export default function DoctorsScreen({
               </View>
             )}
 
+            {/* Doctor information */}
+
             <View style={styles.info}>
-              <Text style={styles.doctorName}>
+              <Text style={styles.name}>
                 {doctor.name}
               </Text>
 
@@ -142,113 +184,146 @@ export default function DoctorsScreen({
               </Text>
 
               <Text style={S.small}>
-                Experience: {doctor.experience} years
+                {t('experience')}:{' '}
+                {doctor.experience} {t('years')}
               </Text>
 
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="business-outline"
-                  size={15}
-                  color={C.blue}
-                />
+              <Text style={S.small}>
+                {t('clinic')}: {doctor.clinic}
+              </Text>
 
-                <Text style={styles.detailText}>
-                  {doctor.clinic}
-                </Text>
-              </View>
+              <Text style={S.small}>
+                {t('address')}: {doctor.address}
+              </Text>
 
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="location-outline"
-                  size={15}
-                  color={C.blue}
-                />
+              {/* Rating */}
 
-                <Text style={styles.detailText}>
-                  {doctor.address}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
+              <View style={styles.ratingRow}>
                 <Ionicons
                   name="star"
                   size={16}
                   color="#F5A623"
                 />
 
-                <Text style={styles.rating}>
+                <Text style={S.small}>
                   {doctor.rating !== null
-                    ? doctor.rating.toFixed(1)
-                    : 'No rating'}
+                    ? doctor.rating.toLocaleString(
+                        locale,
+                        {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }
+                      )
+                    : t('noRating')}
                 </Text>
 
                 <Text style={S.small}>
-                  ({doctor.reviews} reviews)
+                  ({t('reviews')}: {doctor.reviews})
                 </Text>
               </View>
 
+              {/* Consultation price */}
+
               <Text style={styles.price}>
                 {doctor.price !== null
-                  ? `${doctor.price.toLocaleString('ru-RU')} ₸`
-                  : 'Price on request'}
+                  ? `${doctor.price.toLocaleString(locale)} ₸`
+                  : t('priceOnRequest')}
               </Text>
             </View>
+
+            {/* Favorite button */}
+
+            <Pressable
+              accessibilityLabel={
+                isFavorite(doctor.id)
+                  ? t('removeFavorite')
+                  : t('addFavorite')
+              }
+              onPress={() =>
+                toggleFavorite(doctor.id)
+              }
+              style={styles.heart}
+            >
+              <Ionicons
+                name={
+                  isFavorite(doctor.id)
+                    ? 'heart'
+                    : 'heart-outline'
+                }
+                size={25}
+                color={
+                  isFavorite(doctor.id)
+                    ? '#E54865'
+                    : C.blue
+                }
+              />
+            </Pressable>
+
           </View>
 
-          <View style={styles.profileButton}>
-            <Text style={styles.profileButtonText}>
-              View Profile
+          {/* View profile button */}
+
+          <Pressable
+            style={styles.profileButton}
+            onPress={() =>
+              onDoctor?.(doctor.name)
+            }
+          >
+            <Text style={styles.buttonText}>
+              {t('viewProfile')}
             </Text>
 
             <Ionicons
               name="chevron-forward"
-              size={17}
+              size={18}
               color="#FFFFFF"
             />
-          </View>
-        </Pressable>
+          </Pressable>
+
+        </View>
       ))}
 
-      {/* Empty search result */}
+      {/* EMPTY SEARCH RESULT */}
+
       {filteredDoctors.length === 0 && (
         <View style={styles.empty}>
           <Ionicons
             name="search-outline"
-            size={48}
-            color="#8798B7"
+            size={45}
+            color={C.blue}
           />
 
           <Text style={styles.heading}>
-            No doctors found
-          </Text>
-
-          <Text style={S.small}>
-            Try another name or specialty.
+            {t('noDoctorsFound')}
           </Text>
         </View>
       )}
 
+      {/* FOOTER */}
+
       <Text style={styles.footer}>
-        Almaty, Kazakhstan
+        {t('almatyKazakhstan')}
       </Text>
 
       <Text style={styles.footer}>
-        Please confirm prices and availability
-        directly with the clinic.
+        {t('confirmClinicInformation')}
       </Text>
+
     </Page>
   );
 }
 
+// STYLES
+
 const styles = StyleSheet.create({
+
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E8EEFF',
-    borderRadius: 16,
-    paddingHorizontal: 15,
-    marginTop: 20,
-    marginBottom: 18,
+    borderRadius: 17,
+    paddingHorizontal: 14,
+    marginVertical: 20,
     gap: 10,
   },
 
@@ -265,11 +340,12 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  filterButton: {
+  filter: {
     flex: 1,
-    paddingVertical: 12,
     backgroundColor: '#E8EEFF',
     borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 5,
     alignItems: 'center',
   },
 
@@ -279,22 +355,24 @@ const styles = StyleSheet.create({
 
   filterText: {
     color: C.blue,
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 
   activeFilterText: {
     color: '#FFFFFF',
   },
 
-  sectionHeader: {
+  section: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 15,
+    gap: 8,
   },
 
   heading: {
+    flexShrink: 1,
     fontSize: 19,
     fontWeight: '800',
     color: C.ink,
@@ -303,23 +381,23 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#E8EEFF',
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 15,
+    padding: 15,
+    marginBottom: 14,
   },
 
-  cardContent: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: 10,
   },
 
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 65,
+    height: 65,
+    borderRadius: 33,
     backgroundColor: '#CDD9FF',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
 
   info: {
@@ -327,70 +405,64 @@ const styles = StyleSheet.create({
     gap: 5,
   },
 
-  doctorName: {
+  name: {
+    fontSize: 15,
+    fontWeight: '800',
     color: C.ink,
-    fontSize: 16,
-    fontWeight: '700',
   },
 
   specialty: {
+    fontSize: 13,
     color: C.blue,
-    fontSize: 14,
     fontWeight: '600',
   },
 
-  infoRow: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-  },
-
-  detailText: {
-    flex: 1,
-    color: '#64748B',
-    fontSize: 12,
-  },
-
-  rating: {
-    color: C.ink,
-    fontWeight: '700',
-    fontSize: 14,
+    flexWrap: 'wrap',
+    gap: 6,
   },
 
   price: {
-    color: C.blue,
     fontSize: 17,
     fontWeight: '800',
-    marginTop: 5,
+    color: C.blue,
+  },
+
+  heart: {
+    padding: 3,
   },
 
   profileButton: {
     backgroundColor: C.blue,
+    paddingVertical: 13,
+    paddingHorizontal: 10,
     borderRadius: 25,
-    paddingVertical: 12,
     marginTop: 15,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 8,
   },
 
-  profileButtonText: {
+  buttonText: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 14,
+    textAlign: 'center',
   },
 
   empty: {
     alignItems: 'center',
-    paddingVertical: 45,
+    paddingVertical: 40,
     gap: 12,
   },
 
   footer: {
+    textAlign: 'center',
     color: '#8798B7',
     fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
+    marginTop: 12,
   },
+
 });

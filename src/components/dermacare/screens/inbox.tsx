@@ -1,10 +1,36 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+
+import React, { useState, useRef } from 'react';
+
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  Image,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomNav, Page, Person, T } from '../ui';
+
+import { useRoute } from '@react-navigation/native';
+import { getDoctorById } from '../../../data/doctors';
+
+import { Page, T, BottomNav } from '../ui';
 import { colors } from '../theme';
+
+import {
+  searchDoctors,
+  Doctor,
+} from '../../../data/doctors';
+
+import {
+  useMessages,
+} from '../../../context/MessagesContext';
+
 
 /* 15. Notification */
 type N = { id: number; day: string; title: string; time: string; hl?: boolean; icon: keyof typeof Ionicons.glyphMap };
@@ -54,67 +80,616 @@ export function NotificationScreen() {
 }
 
 /* 16. Message */
-type Msg = { id: number; me?: boolean; text?: string; time: string; audio?: boolean };
-const start: Msg[] = [
-  { id: 1, me: true, text: lorem + ' Proin ac diam quam.', time: '09:30' },
-  { id: 2, text: lorem, time: '09:32' },
-  { id: 3, me: true, text: lorem + ' Aenean in sagittis magna.', time: '09:35' },
-  { id: 4, audio: true, time: '09:40' },
-  { id: 5, me: true, text: lorem, time: '09:44' },
-];
+
 export function MessageScreen() {
-  const nav = useNavigation<any>();
-  const insets = useSafeAreaInsets();
-  const [msgs, setMsgs] = useState(start);
-  const [text, setText] = useState('');
-  const send = () => {
-    if (!text.trim()) return;
-    setMsgs([...msgs, { id: Date.now(), me: true, text: text.trim(), time: 'now' }]);
-    setText('');
+  const navigation = useNavigation();
+
+  const [query, setQuery] =
+    useState('');
+
+  const route = useRoute();
+
+const params = route.params as
+  | { doctorId?: number }
+  | undefined;
+
+const [selectedDoctor, setSelectedDoctor] =
+  useState<Doctor | null>(() => {
+    return params?.doctorId !== undefined
+      ? getDoctorById(params.doctorId) ?? null
+      : null;
+  });
+
+  const [messageText, setMessageText] =
+    useState('');
+
+  const scrollRef =
+  useRef<React.ComponentRef<typeof ScrollView>>(null);
+
+  const {
+    sendMessage,
+    getMessages,
+    getLastMessage,
+  } = useMessages();
+
+  const filteredDoctors = searchDoctors(query)
+    .sort((a, b) => {
+      const first =
+        getLastMessage(a.id)?.createdAt ?? 0;
+
+      const second =
+        getLastMessage(b.id)?.createdAt ?? 0;
+
+      return second - first;
+    });
+
+  const currentMessages = selectedDoctor
+    ? getMessages(selectedDoctor.id)
+    : [];
+
+  const handleSend = () => {
+    if (
+      !selectedDoctor ||
+      !messageText.trim()
+    ) {
+      return;
+    }
+
+    sendMessage(
+      selectedDoctor.id,
+      messageText
+    );
+
+    setMessageText('');
   };
-  return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable onPress={() => nav.goBack()} hitSlop={10}><Ionicons name="chevron-back" size={24} color={colors.primary} /></Pressable>
-        <T style={{ flex: 1, marginLeft: 8, color: colors.primary, fontSize: 16, fontWeight: '700' }}>Dr. Olivia Turner</T>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {(['call', 'videocam'] as const).map((ic) => (
-            <View key={ic} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name={ic} size={15} color={colors.primary} />
+
+  const handleBack = () => {
+    if (selectedDoctor) {
+      setSelectedDoctor(null);
+      setMessageText('');
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
+
+  // CHAT SCREEN
+
+  if (selectedDoctor) {
+    return (
+      <KeyboardAvoidingView
+        style={chatStyles.container}
+        behavior={
+          Platform.OS === 'ios'
+            ? 'padding'
+            : undefined
+        }
+      >
+
+        {/* Chat header */}
+
+        <View style={chatStyles.header}>
+          <Pressable onPress={handleBack}>
+            <Ionicons
+              name="chevron-back"
+              size={27}
+              color="#2463FF"
+            />
+          </Pressable>
+
+          {selectedDoctor.image ? (
+            <Image
+              source={{
+                uri: selectedDoctor.image,
+              }}
+              style={chatStyles.smallAvatar}
+            />
+          ) : (
+            <View style={chatStyles.smallAvatar}>
+              <Ionicons
+                name="person-outline"
+                size={25}
+                color="#2463FF"
+              />
+            </View>
+          )}
+
+          <View style={{ flex: 1 }}>
+            <Text style={chatStyles.headerName}>
+              {selectedDoctor.name}
+            </Text>
+
+            <Text style={chatStyles.subtitle}>
+              {selectedDoctor.specialty}
+            </Text>
+          </View>
+        </View>
+
+        {/* Demo notice */}
+
+        <View style={chatStyles.demoBanner}>
+          <Ionicons
+            name="information-circle-outline"
+            size={20}
+            color="#2463FF"
+          />
+
+          <Text style={chatStyles.demoText}>
+            Demo chat. Messages are not sent
+            to the doctor. Do not enter
+            personal or medical information.
+          </Text>
+        </View>
+
+        {/* Messages */}
+
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={
+            chatStyles.messagesContainer
+          }
+          onContentSizeChange={() =>
+            scrollRef.current?.scrollToEnd({
+              animated: true,
+            })
+          }
+        >
+          {currentMessages.length === 0 && (
+            <View style={chatStyles.empty}>
+              <Ionicons
+                name="chatbubbles-outline"
+                size={70}
+                color="#A9BFFF"
+              />
+
+              <Text style={chatStyles.emptyTitle}>
+                Start a conversation
+              </Text>
+
+              <Text style={chatStyles.emptyText}>
+                Write a test message below.
+              </Text>
+            </View>
+          )}
+
+          {currentMessages.map((message) => (
+            <View
+              key={message.id}
+              style={chatStyles.messageRow}
+            >
+              <View style={chatStyles.bubble}>
+                <Text style={chatStyles.messageText}>
+                  {message.text}
+                </Text>
+              </View>
+
+              <View style={chatStyles.messageMeta}>
+                <Text style={chatStyles.time}>
+                  {message.time}
+                </Text>
+
+                <Text style={chatStyles.time}>
+                  Saved locally
+                </Text>
+              </View>
             </View>
           ))}
+        </ScrollView>
+
+        {/* Message input */}
+
+        <View style={chatStyles.inputBar}>
+          <TextInput
+            value={messageText}
+            onChangeText={setMessageText}
+            placeholder="Write here..."
+            placeholderTextColor="#8798B7"
+            style={chatStyles.messageInput}
+            multiline
+            maxLength={2000}
+          />
+
+          <Pressable
+            accessibilityLabel="Send demo message"
+            onPress={handleSend}
+            disabled={!messageText.trim()}
+            style={[
+              chatStyles.sendButton,
+              !messageText.trim() && {
+                opacity: 0.5,
+              },
+            ]}
+          >
+            <Ionicons
+              name="send"
+              size={21}
+              color="#2463FF"
+            />
+          </Pressable>
         </View>
-      </View>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }} showsVerticalScrollIndicator={false}>
-        {msgs.map((m) => (
-          <View key={m.id} style={{ alignSelf: m.me ? 'flex-end' : 'flex-start', maxWidth: '80%', marginBottom: 12 }}>
-            {m.audio ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.softer, borderRadius: 18, padding: 8 }}>
-                <Person size={30} />
-                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: 8 }}><Ionicons name="play" size={12} color="#fff" /></View>
-                <View style={{ width: 90, height: 3, borderRadius: 2, backgroundColor: colors.soft, marginHorizontal: 10 }} />
-                <T style={{ fontSize: 10, color: colors.primary }}>0:12</T>
-              </View>
-            ) : (
-              <View style={{ backgroundColor: m.me ? colors.soft : colors.softer, borderRadius: 14, borderBottomRightRadius: m.me ? 4 : 14, borderBottomLeftRadius: m.me ? 14 : 4, paddingHorizontal: 12, paddingVertical: 9 }}>
-                <T style={{ fontSize: 11, lineHeight: 16 }}>{m.text}</T>
-              </View>
-            )}
-            <T style={{ fontSize: 9, color: colors.primary, marginTop: 3, alignSelf: m.me ? 'flex-end' : 'flex-start' }}>{m.time}</T>
-          </View>
-        ))}
-        <T style={{ fontSize: 10, color: colors.primary }}>Dr. Olivia is typing...</T>
-      </ScrollView>
-      <View style={{ marginHorizontal: 14, height: 48, borderRadius: 24, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 6 }}>
-        <Ionicons name="attach" size={22} color="#fff" />
-        <TextInput value={text} onChangeText={setText} onSubmitEditing={send} placeholder="Write here..." placeholderTextColor={colors.grey}
-          style={{ flex: 1, height: 32, borderRadius: 16, backgroundColor: '#fff', marginHorizontal: 8, paddingHorizontal: 12, fontSize: 12 }} />
-        <Ionicons name="mic" size={20} color="#fff" style={{ marginRight: 10 }} />
-        <Pressable onPress={send} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="send" size={14} color={colors.primary} />
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // DOCTOR LIST SCREEN
+
+  return (
+    <View style={chatStyles.container}>
+
+      <View style={chatStyles.header}>
+        <Pressable onPress={handleBack}>
+          <Ionicons
+            name="chevron-back"
+            size={27}
+            color="#2463FF"
+          />
         </Pressable>
+
+        <Text style={chatStyles.title}>
+          Messages
+        </Text>
       </View>
-      <BottomNav active={1} />
+
+      <ScrollView
+        contentContainerStyle={
+          chatStyles.listContainer
+        }
+      >
+        <Text style={chatStyles.mainTitle}>
+          Your conversations
+        </Text>
+
+        <Text style={chatStyles.description}>
+          Choose a doctor for a demo conversation.
+        </Text>
+
+        {/* Search */}
+
+        <View style={chatStyles.searchBox}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color="#2463FF"
+          />
+
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search doctors..."
+            placeholderTextColor="#8798B7"
+            style={chatStyles.searchInput}
+          />
+
+          {query.length > 0 && (
+            <Pressable
+              onPress={() => setQuery('')}
+            >
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color="#2463FF"
+              />
+            </Pressable>
+          )}
+        </View>
+
+        <Text style={chatStyles.sectionTitle}>
+          Doctors
+        </Text>
+
+        {filteredDoctors.map((doctor) => {
+          const lastMessage =
+            getLastMessage(doctor.id);
+
+          return (
+            <Pressable
+              key={doctor.id}
+              style={chatStyles.doctorCard}
+              onPress={() => {
+                setSelectedDoctor(doctor);
+                setMessageText('');
+              }}
+            >
+              {doctor.image ? (
+                <Image
+                  source={{
+                    uri: doctor.image,
+                  }}
+                  style={chatStyles.avatar}
+                />
+              ) : (
+                <View style={chatStyles.avatar}>
+                  <Ionicons
+                    name="person-outline"
+                    size={28}
+                    color="#2463FF"
+                  />
+                </View>
+              )}
+
+              <View style={chatStyles.doctorInfo}>
+                <Text style={chatStyles.doctorName}>
+                  {doctor.name}
+                </Text>
+
+                <Text style={chatStyles.specialty}>
+                  {doctor.specialty}
+                </Text>
+
+                <Text
+                  style={chatStyles.lastMessage}
+                  numberOfLines={1}
+                >
+                  {lastMessage
+                    ? lastMessage.text
+                    : 'No messages yet'}
+                </Text>
+              </View>
+
+              <View style={{ alignItems: 'flex-end' }}>
+                {lastMessage && (
+                  <Text style={chatStyles.time}>
+                    {lastMessage.time}
+                  </Text>
+                )}
+
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color="#2463FF"
+                />
+              </View>
+            </Pressable>
+          );
+        })}
+
+        {filteredDoctors.length === 0 && (
+          <View style={chatStyles.empty}>
+            <Ionicons
+              name="search-outline"
+              size={55}
+              color="#A9BFFF"
+            />
+
+            <Text style={chatStyles.emptyTitle}>
+              No doctors found
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
+
+const chatStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+  },
+
+  title: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#2463FF',
+  },
+
+  headerName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2463FF',
+  },
+
+  subtitle: {
+    fontSize: 12,
+    color: '#8798B7',
+    marginTop: 4,
+  },
+
+  smallAvatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    backgroundColor: '#E8EEFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  listContainer: {
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+    padding: 20,
+    paddingBottom: 30,
+  },
+
+  mainTitle: {
+    color: '#18213D',
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+
+  description: {
+    fontSize: 14,
+    color: '#8798B7',
+    marginBottom: 20,
+  },
+
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8EEFF',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 25,
+  },
+
+  searchInput: {
+    flex: 1,
+    height: 48,
+    fontSize: 14,
+    color: '#18213D',
+  },
+
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#18213D',
+    marginBottom: 15,
+  },
+
+  doctorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8EEFF',
+    padding: 15,
+    borderRadius: 20,
+    marginBottom: 12,
+    gap: 12,
+  },
+
+  avatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#CDD9FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  doctorInfo: {
+    flex: 1,
+    gap: 5,
+  },
+
+  doctorName: {
+    color: '#18213D',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  specialty: {
+    color: '#2463FF',
+    fontSize: 13,
+  },
+
+  lastMessage: {
+    color: '#8798B7',
+    fontSize: 13,
+  },
+
+  demoBanner: {
+    backgroundColor: '#E8EEFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginHorizontal: 15,
+    borderRadius: 12,
+    gap: 8,
+  },
+
+  demoText: {
+    flex: 1,
+    color: '#2463FF',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  messagesContainer: {
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    flexGrow: 1,
+  },
+
+  messageRow: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+
+  bubble: {
+    maxWidth: '82%',
+    backgroundColor: '#DCE4FF',
+    borderRadius: 20,
+    borderBottomRightRadius: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+
+  messageText: {
+    color: '#18213D',
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  messageMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 6,
+  },
+
+  time: {
+    color: '#2463FF',
+    fontSize: 11,
+  },
+
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#2463FF',
+    borderRadius: 35,
+    padding: 8,
+    margin: 15,
+    gap: 10,
+  },
+
+  messageInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+    maxHeight: 110,
+    fontSize: 14,
+    color: '#18213D',
+  },
+
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 55,
+    gap: 15,
+  },
+
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#18213D',
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: '#8798B7',
+    textAlign: 'center',
+  },
+});
